@@ -103,3 +103,12 @@ exports.remove = (req, res, next) => {
     .then(() => res.status(httpStatus.NO_CONTENT).end())
     .catch(e => next(e));
 };
+
+/**
+ * Get Steam profile of User
+ * @public
+ */
+// exports.getUserInventory = (req, res) => {
+//   const id = req.params.steamid;
+//   fetch(`http://steamcommunity.com/inventory/${id}/${process.env.APP_ID}/2?l=english&count=5000`);
+// };

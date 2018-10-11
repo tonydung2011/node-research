@@ -83,3 +83,15 @@ exports.refresh = async (req, res, next) => {
     return next(error);
   }
 };
+
+exports.steamAuth = (req, res, next) => {
+  if (process.env.NODE_ENV === 'development') {
+    console.log('User\'s openid info', req.query);
+  }
+  const regex = /\d+$/;
+  return res.status(200).json({
+    steam_id: req.query['openid.claimed_id'].match(regex)[0],
+  });
+};
+
+exports.steamFailAuth = (req, res, next) => res.status(400).send('Bad Request');

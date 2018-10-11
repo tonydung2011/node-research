@@ -11,10 +11,18 @@ const { logs } = require('./vars');
 const strategies = require('./passport');
 const error = require('../api/middlewares/error');
 
+passport.serializeUser((user, done) => {
+  done(null, user);
+});
+
+passport.deserializeUser((obj, done) => {
+  done(null, obj);
+});
 /**
 * Express instance
 * @public
 */
+
 const app = express();
 
 // request logging. dev: console | production: file
@@ -42,6 +50,7 @@ app.use(passport.initialize());
 passport.use('jwt', strategies.jwt);
 passport.use('facebook', strategies.facebook);
 passport.use('google', strategies.google);
+passport.use('steam', strategies.steam);
 
 // mount api v1 routes
 app.use('/v1', routes);

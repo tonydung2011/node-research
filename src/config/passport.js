@@ -4,10 +4,17 @@ const { ExtractJwt } = require('passport-jwt');
 const { jwtSecret } = require('./vars');
 const authProviders = require('../api/services/authProviders');
 const User = require('../api/models/user.model');
+const SteamStrategy = require('passport-steam');
 
 const jwtOptions = {
   secretOrKey: jwtSecret,
   jwtFromRequest: ExtractJwt.fromAuthHeaderWithScheme('Bearer'),
+};
+
+const steamOption = {
+  returnURL: `${process.env.DOMAIN || process.env.IP || 'http://127.0.0.1:3000'}/v1/auth/steam/return`,
+  realm: process.env.DOMAIN || process.env.IP || 'http://127.0.0.1:3000',
+  apiKey: process.env.STEAM_API_KEY,
 };
 
 const jwt = async (payload, done) => {
@@ -33,3 +40,4 @@ const oAuth = service => async (token, done) => {
 exports.jwt = new JwtStrategy(jwtOptions, jwt);
 exports.facebook = new BearerStrategy(oAuth('facebook'));
 exports.google = new BearerStrategy(oAuth('google'));
+exports.steam = new SteamStrategy(steamOption, authProviders.steam);

@@ -33,3 +33,10 @@ exports.google = async (access_token) => {
     email,
   };
 };
+
+exports.steam = (id, profile, done) => {
+  if (process.env.NODE_ENV === 'development') {
+    console.log('authenticate user with ID and Profile', id, profile);
+  }
+  done(null, profile);
+};

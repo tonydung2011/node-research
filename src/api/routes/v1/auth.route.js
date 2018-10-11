@@ -1,5 +1,6 @@
 const express = require('express');
 const validate = require('express-validation');
+const passport = require('passport');
 const controller = require('../../controllers/auth.controller');
 const oAuthLogin = require('../../middlewares/auth').oAuth;
 const {
@@ -143,5 +144,15 @@ router.route('/facebook')
 router.route('/google')
   .post(validate(oAuth), oAuthLogin('google'), controller.oAuth);
 
+router.route('/steam')
+  .get(passport.authenticate('steam'), () => {});
+
+router.route('/steam/return')
+  .get(passport.authenticate('steam', {
+    failureRedirect: '/steam/fail',
+  }), controller.steamAuth);
+
+router.route('/steam/fail')
+  .get(controller.steamFailAuth);
 
 module.exports = router;

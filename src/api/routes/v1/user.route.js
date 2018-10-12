@@ -189,8 +189,4 @@ router
    */
   .delete(authorize(LOGGED_USER), controller.remove);
 
-router
-  .route('/inventory/:steamid')
-  .get(controller.getUserInventory);
-
 module.exports = router;

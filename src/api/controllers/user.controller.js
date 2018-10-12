@@ -3,6 +3,7 @@ const { omit } = require('lodash');
 const User = require('../models/user.model');
 const { handler: errorHandler } = require('../middlewares/error');
 
+
 /**
  * Load user and append to req.
  * @public

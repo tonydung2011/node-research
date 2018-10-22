@@ -20,8 +20,10 @@ module.exports = {
   API: {
     steam: {
       getImgUrl: pathFile => `https://steamcommunity-a.akamaihd.net/economy/image/${pathFile}`,
-      getInventoryUrl: steamid => `http://steamcommunity.com/inventory/${steamid}/570/2`,
+      getInventoryUrl: steamid => `http://steamcommunity.com/inventory/${steamid}/${process.env.DOTA2_ID}/${process.env.DOTA2_CONTEXT}`,
       getInventoryUrl2: steamid => `http://api.steampowered.com/IEconItems_570/GetPlayerItems/v1/?key=${process.env.STEAM_API_KEY}&language=english&steamid=${steamid}`,
+      getInventoryUrlFromSteamApis: steamid => `http://api.steamapis.com/steam/inventory/${steamid}/${process.env.DOTA2_ID}/${process.env.DOTA2_CONTEXT}?api_key=${process.env.STEAM_API_KEY}`,
+      getAllSkinInGame: () => `http://api.steamapis.com/market/items/${process.env.DOTA2_ID}?api_key=${process.env.STEAM_API_KEY}`,
     },
   },
 };

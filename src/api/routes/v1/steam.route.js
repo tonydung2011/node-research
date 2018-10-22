@@ -5,7 +5,11 @@ const router = express.Router();
 
 router
   .route('/inventory/:steamid')
-  .get(controller.getUserInventory);
+  .get(controller.getUserInventoryFromSteamapis);
+
+router
+  .route('/store')
+  .get(controller.getAllSkinInGame);
 
 
 module.exports = router;

@@ -47,3 +47,6 @@ jspm_packages
 
 #lock file
 yarn.lock
+
+#app credentials
+credentials.json

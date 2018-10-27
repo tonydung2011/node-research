@@ -78,7 +78,7 @@ exports.getAllSkinInGame = async (req, res, next) => {
       const dotaItemsDB = [];
       const databaseSnapshot = await dotaItems.get();
       databaseSnapshot.forEach(doc => dotaItemsDB.push(doc.data()));
-      const dotaItemsBussiness = _.map(_.take(dotaItemsStore.data, 20), (item) => {
+      const dotaItemsBussiness = _.map(_.take(dotaItemsStore.data, 100), (item) => {
         const itemFromDB = _.find(dotaItemsDB, doc => doc.market_hash_name === item.market_hash_name);
         if (itemFromDB) {
           return {

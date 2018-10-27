@@ -12,8 +12,8 @@ const jwtOptions = {
 };
 
 const steamOption = {
-  returnURL: `${process.env.DOMAIN || process.env.IP || 'http://127.0.0.1:3000'}/v1/auth/steam/return`,
-  realm: process.env.DOMAIN || process.env.IP || 'http://127.0.0.1:3000',
+  returnURL: `${process.env.DOMAIN || process.env.IP || 'http://127.0.0.1:5000'}/v1/auth/steam/return`,
+  realm: process.env.DOMAIN || process.env.IP || 'http://127.0.0.1:5000',
   apiKey: process.env.STEAM_API_KEY,
 };
 

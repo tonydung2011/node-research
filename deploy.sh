@@ -1,12 +1,12 @@
 #!/bin/bash
-docker build -t danielfsousa/express-rest-es2017-boilerplate .
-docker push danielfsousa/express-rest-es2017-boilerplate
+docker build -t trandung/steam-bot-api .
+docker push trandung/steam-bot-api
 
 ssh deploy@$DEPLOY_SERVER << EOF
-docker pull danielfsousa/express-rest-es2017-boilerplate
+docker pull trandung/steam-bot-api
 docker stop api-boilerplate || true
 docker rm api-boilerplate || true
-docker rmi danielfsousa/express-rest-es2017-boilerplate:current || true
-docker tag danielfsousa/express-rest-es2017-boilerplate:latest danielfsousa/express-rest-es2017-boilerplate:current
-docker run -d --restart always --name api-boilerplate -p 5000:5000 danielfsousa/express-rest-es2017-boilerplate:current
+docker rmi trandung/steam-bot-api:current || true
+docker tag trandung/steam-bot-api:latest trandung/steam-bot-api:current
+docker run -d --restart always --name api-boilerplate -p 8080:8080 trandung/steam-bot-api:current
 EOF

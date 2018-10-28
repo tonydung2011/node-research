@@ -32,8 +32,7 @@ manual_scaling:
   instances: 1
 resources:
   cpu: 1
-  memory_gb: 4
+  memory_gb: 1
   disk_size_gb: 5
-endpoints_api_service:
-  name: steam-220215.appspot.com
-  rollout_strategy: managed
+skip_files:
+  - ^node_modules/.*$

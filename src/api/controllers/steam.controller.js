@@ -3,6 +3,7 @@ const fetch = require('node-fetch');
 const _ = require('lodash');
 const Firestore = require('@google-cloud/firestore');
 const path = require('path');
+const joi = require('joi');
 
 const db = new Firestore({
   projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
@@ -13,6 +14,12 @@ const settings = {
 };
 db.settings(settings);
 const dotaItems = db.collection('dota-items');
+
+const schema = joi.object().keys({
+  market_hash_name: joi.string().required(),
+  tradable: joi.boolean().required(),
+  marketRate: [joi.number(), joi.string()],
+});
 
 exports.getUserstore = async (req, res, next) => {
   try {
@@ -78,7 +85,7 @@ exports.getAllSkinInGame = async (req, res, next) => {
       const dotaItemsDB = [];
       const databaseSnapshot = await dotaItems.get();
       databaseSnapshot.forEach(doc => dotaItemsDB.push(doc.data()));
-      const dotaItemsBussiness = _.map(_.take(dotaItemsStore.data, 100), (item) => {
+      const dotaItemsBussiness = _.map(dotaItemsStore.data, (item) => {
         const itemFromDB = _.find(dotaItemsDB, doc => doc.market_hash_name === item.market_hash_name);
         if (itemFromDB) {
           return {
@@ -111,3 +118,53 @@ exports.getAllSkinInGame = async (req, res, next) => {
     });
   }
 };
+
+exports.updateDataInGame = (req, res, next) => {
+  try {
+    const { data } = req.body;
+    if (!data) {
+      return res.status(400).json({
+        success: false,
+        message: 'No valid data field appear in request',
+      });
+    }
+    if (!_.isArray(data)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid data field must be an array',
+      });
+    }
+    const schemaTest = _.findIndex(_.map(data, doc => schema.validate(doc).error === null), false) !== -1;
+    if (schemaTest) {
+      return res.status(400).json({
+        success: false,
+        message: 'Contain invalid object\'s schema in data field of body',
+      });
+    }
+    _.each(data, (doc) => {
+      const docDb = dotaItems.doc(doc.market_hash_name);
+      if (!docDb.exists) {
+        docDb.set({
+          market_hash_name: doc.market_hash_name,
+          tradable: doc.tradable,
+          marketRate: doc.marketRate,
+        });
+      } else {
+        dotaItems.update({
+          market_hash_name: doc.market_hash_name,
+          tradable: doc.tradable,
+          marketRate: doc.marketRate,
+        });
+      }
+    });
+    return res.status(200).json({
+      success: true,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+

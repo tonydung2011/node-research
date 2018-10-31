@@ -11,5 +11,9 @@ router
   .route('/store')
   .get(controller.getAllSkinInGame);
 
+router
+  .route('/update')
+  .post(controller.updateDataInGame);
+
 
 module.exports = router;

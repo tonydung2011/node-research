@@ -12,7 +12,7 @@ router
   .get(controller.getAllSkinInGame);
 
 router
-  .route('/update')
+  .route('/store')
   .post(controller.updateDataInGame);
 
 

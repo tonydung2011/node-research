@@ -103,6 +103,7 @@ exports.getAllSkinInGame = async (req, res, next) => {
       return res.status(200).json({
         appId: responseFromAPI.appID,
         context: responseFromAPI.part,
+        total: dotaItemsBussiness.length,
         success: true,
         data: dotaItemsBussiness,
       });

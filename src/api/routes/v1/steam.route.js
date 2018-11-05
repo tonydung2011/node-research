@@ -9,7 +9,7 @@ router
 
 router
   .route('/store')
-  .get(controller.getAllSkinInGame);
+  .get(controller.searchSkin);
 
 router
   .route('/store')

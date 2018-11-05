@@ -21,39 +21,6 @@ const schema = joi.object().keys({
   marketRate: [joi.number(), joi.string()],
 });
 
-exports.getUserstore = async (req, res, next) => {
-  try {
-    const steamId = req.params.steamid;
-    const dataFromComunity = await fetch(config.API.steam.getInventoryUrl(steamId));
-    const dataFromSteamPowered = await fetch(config.API.steam.getInventoryUrl2(steamId));
-    if (dataFromComunity.ok &&
-      dataFromComunity.status === 200 &&
-      dataFromSteamPowered.ok &&
-      dataFromSteamPowered.status === 200
-    ) {
-      const dataFromComunityJson = await dataFromComunity.json();
-      const dataFromSteamPoweredJson = await dataFromSteamPowered.json();
-      /* eslint-disable-next-line */
-      const result = _.map(dataFromSteamPoweredJson.result.items, ({ id, quantity }) => {
-        const foundAssetItem = _.find(dataFromComunityJson.assets, comunityItem => comunityItem.assetid === id.toString());
-        if (foundAssetItem) {
-          const fonudDescriptionsItem = _.find(dataFromComunityJson.descriptions, comunityItem => comunityItem.classid === foundAssetItem.classid && comunityItem.instanceid === foundAssetItem.instanceid);
-          return {
-            ...fonudDescriptionsItem,
-            quantity,
-            icon_url: config.API.steam.getImgUrl(fonudDescriptionsItem.icon_url),
-            icon_url_large: config.API.steam.getImgUrl(fonudDescriptionsItem.icon_url_large),
-          };
-        }
-      });
-      return res.status(200).json(result);
-    }
-    return res.status(400).send('Bad request');
-  } catch (error) {
-    return res.status(500).send('Internal server error');
-  }
-};
-
 exports.getUserInventoryFromSteamapis = async (req, res, next) => {
   try {
     const steamId = req.params.steamid;
@@ -75,7 +42,13 @@ exports.getUserInventoryFromSteamapis = async (req, res, next) => {
   }
 };
 
-exports.getAllSkinInGame = async (req, res, next) => {
+exports.searchSkin = async (req, res, next) => {
+  let {
+    limit, page, min_price: minPrice, max_price: maxPrice, tradable,
+  } = req.query;
+  const {
+    rarity = '', hero = '', market_hash_name = '', sort = 'price',
+  } = req.query;
   try {
     const responseFromAPI = await fetch(config.API.steam.getAllSkinInGame());
     if (responseFromAPI.ok &&
@@ -85,7 +58,7 @@ exports.getAllSkinInGame = async (req, res, next) => {
       const dotaItemsDB = [];
       const databaseSnapshot = await dotaItems.get();
       databaseSnapshot.forEach(doc => dotaItemsDB.push(doc.data()));
-      const dotaItemsBussiness = _.map(dotaItemsStore.data, (item) => {
+      let dotaItemsBussiness = _.map(dotaItemsStore.data, (item) => {
         const itemFromDB = _.find(dotaItemsDB, doc => doc.market_hash_name === item.market_hash_name);
         if (itemFromDB) {
           return {
@@ -100,12 +73,69 @@ exports.getAllSkinInGame = async (req, res, next) => {
           tradable: true,
         };
       });
+
+      limit = !isNaN(parseInt(limit, 10)) ? parseInt(limit, 10) : 10; /* eslint-disable-line */
+      page = !isNaN(parseInt(page, 10)) ? parseInt(page, 10) : 1; /* eslint-disable-line */
+      minPrice = !isNaN(parseInt(minPrice, 10)) ? parseInt(minPrice, 10) : 0; /* eslint-disable-line */
+      maxPrice = !isNaN(parseInt(maxPrice, 10)) ? parseInt(maxPrice, 10) : 1000; /* eslint-disable-line */
+
+      if (!tradable || tradable !== 'yes' || tradable !== 'no') {
+        tradable = 'all';
+      }
+      const heroReg = new RegExp(hero, 'i');
+      const rarityReg = new RegExp(rarity, 'i');
+      const nameReg = new RegExp(market_hash_name, 'i');
+
+      dotaItemsBussiness = _.filter(dotaItemsBussiness, item => (
+        heroReg.test(item.hero) &&
+        rarityReg.test(item.rarity) &&
+        nameReg.test(item.market_hash_name) &&
+        item.prices.safe_ts.last_24h >= minPrice &&
+        item.prices.safe_ts.last_24h <= maxPrice &&
+        (
+          (
+            tradable === 'yes' &&
+            item.tradable
+          ) || (
+            tradable === 'no' &&
+            !item.tradable
+          ) || (
+            tradable === 'all'
+          )
+        )
+      ));
+
+      switch (sort) {
+        case 'price':
+          dotaItemsBussiness = _.sortBy(dotaItemsBussiness, i => i.prices.safe_ts.last_24h);
+          break;
+        case 'name':
+          dotaItemsBussiness = _.sortBy(dotaItemsBussiness, i => i.market_hash_name);
+          break;
+        case 'hero':
+          dotaItemsBussiness = _.sortBy(dotaItemsBussiness, i => i.hero);
+          break;
+        case 'rarity':
+          dotaItemsBussiness = _.sortBy(dotaItemsBussiness, i => i.rarity);
+          break;
+        default:
+          dotaItemsBussiness = _.sortBy(dotaItemsBussiness, i => i.market_hash_name);
+          break;
+      }
+
+      const pagination = _.chunk(dotaItemsBussiness, limit);
+      if (page > pagination.length) {
+        page = pagination.length;
+      }
+
       return res.status(200).json({
+        page,
+        limit,
         appId: responseFromAPI.appID,
         context: responseFromAPI.part,
         total: dotaItemsBussiness.length,
         success: true,
-        data: dotaItemsBussiness,
+        data: pagination[page - 1],
       });
     }
     return res.status(500).json({

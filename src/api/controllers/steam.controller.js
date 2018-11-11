@@ -198,4 +198,3 @@ exports.updateDataInGame = (req, res, next) => {
     });
   }
 };
-

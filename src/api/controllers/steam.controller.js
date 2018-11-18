@@ -29,8 +29,9 @@ exports.getUserInventoryFromSteamapis = async (req, res, next) => {
       responseFromAPI.status === 200
     ) {
       const inventory = await responseFromAPI.json();
-      const result = inventory.description.map(skin => ({
+      const result = inventory.descriptions.map(skin => ({
         ...skin,
+        assetid: _.find(inventory.assets, asset => asset.classid === skin.classid && asset.instanceid === skin.instanceid).assetid,
         icon_url: config.API.steam.getImgUrl(skin.icon_url),
         icon_url_large: config.API.steam.getImgUrl(skin.icon_url_large),
       }));

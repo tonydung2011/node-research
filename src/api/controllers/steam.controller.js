@@ -21,6 +21,22 @@ const schema = joi.object().keys({
   marketRate: [joi.number(), joi.string()],
 });
 
+exports.getUserInfo = async (req, res, next) => {
+  try {
+    const steamId = req.params.steamid;
+    const responseFromAPI = await fetch(config.API.steam.getUserInfo(steamId));
+    if (responseFromAPI.ok &&
+      responseFromAPI.status === 200
+    ) {
+      const user = await responseFromAPI.json();
+      return res.status(200).json(user);
+    }
+    return res.status(400).send('Bad request');
+  } catch (error) {
+    return res.status(500).send('Internal server error');
+  }
+};
+
 exports.getUserInventoryFromSteamapis = async (req, res, next) => {
   try {
     const steamId = req.params.steamid;

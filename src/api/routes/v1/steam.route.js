@@ -8,6 +8,10 @@ router
   .get(controller.getUserInventoryFromSteamapis);
 
 router
+  .route('/user/:steamid')
+  .get(controller.getUserInfo);
+
+router
   .route('/store')
   .get(controller.searchSkin);
 

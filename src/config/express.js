@@ -43,10 +43,6 @@ app.use(methodOverride());
 app.use(helmet());
 
 // enable CORS - Cross Origin Resource Sharing
-// const configCors = {
-//   origin: whitelistOrigin,
-// };
-// app.options('*', cors(configCors));
 app.use(cors());
 
 // enable authentication

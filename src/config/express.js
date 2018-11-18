@@ -7,7 +7,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const passport = require('passport');
 const routes = require('../api/routes/v1');
-const { logs, whitelistOrigin } = require('./vars');
+const { logs } = require('./vars');
 const strategies = require('./passport');
 const error = require('../api/middlewares/error');
 
@@ -43,11 +43,11 @@ app.use(methodOverride());
 app.use(helmet());
 
 // enable CORS - Cross Origin Resource Sharing
-const configCors = {
-  origin: whitelistOrigin,
-};
-app.options('*', cors(configCors));
-app.use(cors(configCors));
+// const configCors = {
+//   origin: whitelistOrigin,
+// };
+// app.options('*', cors(configCors));
+app.use(cors());
 
 // enable authentication
 app.use(passport.initialize());

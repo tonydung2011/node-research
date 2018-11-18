@@ -46,6 +46,7 @@ app.use(helmet());
 const configCors = {
   origin: whitelistOrigin,
 };
+app.options('*', cors(configCors));
 app.use(cors(configCors));
 
 // enable authentication

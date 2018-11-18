@@ -26,4 +26,5 @@ module.exports = {
       getAllSkinInGame: () => `http://api.steamapis.com/market/items/${process.env.DOTA2_ID}?api_key=${process.env.STEAM_API_KEY}`,
     },
   },
+  whitelistOrigin: JSON.parse(process.env.WHITE_LIST_ORIGIN),
 };

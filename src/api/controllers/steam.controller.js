@@ -123,8 +123,14 @@ exports.searchSkin = async (req, res, next) => {
       ));
 
       switch (sort) {
-        case 'price':
+        case 'price-24h':
           dotaItemsBussiness = _.sortBy(dotaItemsBussiness, i => i.prices.safe_ts.last_24h);
+          break;
+        case 'price-7d':
+          dotaItemsBussiness = _.sortBy(dotaItemsBussiness, i => i.prices.safe_ts.last_7d);
+          break;
+        case 'price-30d':
+          dotaItemsBussiness = _.sortBy(dotaItemsBussiness, i => i.prices.safe_ts.last_30d);
           break;
         case 'name':
           dotaItemsBussiness = _.sortBy(dotaItemsBussiness, i => i.market_hash_name);
@@ -152,7 +158,7 @@ exports.searchSkin = async (req, res, next) => {
         context: responseFromAPI.part,
         total: dotaItemsBussiness.length,
         success: true,
-        data: pagination[page - 1],
+        data: pagination.length !== 0 ? pagination[page - 1] : [],
       });
     }
     return res.status(500).json({

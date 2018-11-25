@@ -82,12 +82,14 @@ exports.searchSkin = async (req, res, next) => {
             ...item,
             marketRate: itemFromDB.marketRate,
             tradable: itemFromDB.tradable,
+            overstock: itemFromDB.overstock,
           };
         }
         return {
           ...item,
           marketRate: 1,
           tradable: true,
+          overstock: null,
         };
       });
 
@@ -202,12 +204,14 @@ exports.updateDataInGame = (req, res, next) => {
           market_hash_name: doc.market_hash_name,
           tradable: doc.tradable,
           marketRate: doc.marketRate,
+          overstock: doc.overstock,
         });
       } else {
         dotaItems.update({
           market_hash_name: doc.market_hash_name,
           tradable: doc.tradable,
           marketRate: doc.marketRate,
+          overstock: doc.overstock,
         });
       }
     });

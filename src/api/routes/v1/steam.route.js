@@ -8,6 +8,10 @@ router
   .get(controller.getUserInventoryFromSteamapis);
 
 router
+  .route('/bot')
+  .get(controller.getBotInventoryFromSteamapis);
+
+router
   .route('/user/:steamid')
   .get(controller.getUserInfo);
 

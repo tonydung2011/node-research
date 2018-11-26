@@ -40,18 +40,102 @@ exports.getUserInfo = async (req, res, next) => {
 exports.getUserInventoryFromSteamapis = async (req, res, next) => {
   try {
     const steamId = req.params.steamid;
-    const responseFromAPI = await fetch(config.API.steam.getInventoryUrlFromSteamApis(steamId));
-    if (responseFromAPI.ok &&
-      responseFromAPI.status === 200
+    const dotaSkins = await fetch(config.API.steam.getAllSkinInGame());
+    if (
+      dotaSkins.ok &&
+      dotaSkins.status === 200
     ) {
-      const inventory = await responseFromAPI.json();
-      const result = inventory.descriptions.map(skin => ({
-        ...skin,
-        assetid: _.find(inventory.assets, asset => asset.classid === skin.classid && asset.instanceid === skin.instanceid).assetid,
-        icon_url: config.API.steam.getImgUrl(skin.icon_url),
-        icon_url_large: config.API.steam.getImgUrl(skin.icon_url_large),
-      }));
-      return res.status(200).json(result);
+      const dotaItemsStore = await dotaSkins.json();
+      const inventoryResponse = await fetch(config.API.steam.getInventoryUrlFromSteamApis(steamId));
+      if (inventoryResponse.ok &&
+        inventoryResponse.status === 200
+      ) {
+        const inventory = await inventoryResponse.json();
+        const dotaItemsDB = [];
+        const databaseSnapshot = await dotaItems.get();
+        databaseSnapshot.forEach(doc => dotaItemsDB.push(doc.data()));
+        const result = [];
+        _.each(inventory.descriptions, (skin) => {
+          const {
+            marketRate,
+            tradable,
+            overstock,
+          } = _.find(dotaItemsDB, i => i.market_hash_name === skin.market_hash_name) || {
+            marketRate: 1,
+            tradable: true,
+          };
+          const skinFromSteam = _.find(dotaItemsStore.data, i => i.market_hash_name === skin.market_hash_name) || {
+            prices: {
+              safe_ts: {
+                last_7d: 0,
+              },
+            },
+          };
+          if (tradable) {
+            result.push({
+              ...skin,
+              assetid: _.find(inventory.assets, asset => asset.classid === skin.classid && asset.instanceid === skin.instanceid).assetid,
+              icon_url: config.API.steam.getImgUrl(skin.icon_url),
+              price: skinFromSteam.prices.safe_ts.last_7d * (marketRate - 0.05),
+              overstock,
+            });
+          }
+        });
+        return res.status(200).json(result);
+      }
+    }
+    return res.status(400).send('Bad request');
+  } catch (error) {
+    return res.status(500).send('Internal server error');
+  }
+};
+
+exports.getBotInventoryFromSteamapis = async (req, res, next) => {
+  try {
+    const dotaSkins = await fetch(config.API.steam.getAllSkinInGame());
+    const botId = req.query.bot || 0;
+    if (
+      dotaSkins.ok &&
+      dotaSkins.status === 200
+    ) {
+      const dotaItemsStore = await dotaSkins.json();
+      const inventoryResponse = await fetch(config.API.steam.getInventoryUrlFromSteamApis(config.botList[botId]));
+      if (inventoryResponse.ok &&
+        inventoryResponse.status === 200
+      ) {
+        const inventory = await inventoryResponse.json();
+        const dotaItemsDB = [];
+        const databaseSnapshot = await dotaItems.get();
+        databaseSnapshot.forEach(doc => dotaItemsDB.push(doc.data()));
+        const result = [];
+        _.each(inventory.descriptions, (skin) => {
+          const {
+            marketRate,
+            tradable,
+            overstock,
+          } = _.find(dotaItemsDB, i => i.market_hash_name === skin.market_hash_name) || {
+            marketRate: 1,
+            tradable: true,
+          };
+          const skinFromSteam = _.find(dotaItemsStore.data, i => i.market_hash_name === skin.market_hash_name) || {
+            prices: {
+              safe_ts: {
+                last_7d: 0,
+              },
+            },
+          };
+          if (tradable) {
+            result.push({
+              ...skin,
+              assetid: _.find(inventory.assets, asset => asset.classid === skin.classid && asset.instanceid === skin.instanceid).assetid,
+              icon_url: config.API.steam.getImgUrl(skin.icon_url),
+              price: skinFromSteam.prices.safe_ts.last_7d * marketRate,
+              overstock,
+            });
+          }
+        });
+        return res.status(200).json(result);
+      }
     }
     return res.status(400).send('Bad request');
   } catch (error) {

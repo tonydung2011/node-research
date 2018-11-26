@@ -28,4 +28,5 @@ module.exports = {
     },
   },
   whitelistOrigin: JSON.parse(process.env.WHITE_LIST_ORIGIN),
+  botList: JSON.parse(process.env.BOTS),
 };

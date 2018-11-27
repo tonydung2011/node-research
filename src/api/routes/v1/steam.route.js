@@ -23,5 +23,9 @@ router
   .route('/store')
   .post(controller.updateDataInGame);
 
+router
+  .route('/admin')
+  .post(controller.authenticateAdmin);
+
 
 module.exports = router;

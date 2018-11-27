@@ -14,6 +14,7 @@ const settings = {
 };
 db.settings(settings);
 const dotaItems = db.collection('dota-items');
+const adminDB = db.collection('admin');
 
 const schema = joi.object().keys({
   market_hash_name: joi.string().required(),
@@ -301,6 +302,26 @@ exports.updateDataInGame = (req, res, next) => {
     });
     return res.status(200).json({
       success: true,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+exports.authenticateAdmin = async (req, res, next) => {
+  let success = false;
+  try {
+    const databaseSnapshot = await adminDB.get();
+    databaseSnapshot.forEach((doc) => {
+      if (req.body.password === doc.data().password) {
+        success = true;
+      }
+    });
+    return res.status(200).json({
+      success,
     });
   } catch (error) {
     return res.status(500).json({

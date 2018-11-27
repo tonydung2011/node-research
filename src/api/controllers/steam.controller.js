@@ -260,9 +260,21 @@ exports.searchSkin = async (req, res, next) => {
   }
 };
 
-exports.updateDataInGame = (req, res, next) => {
+exports.updateDataInGame = async (req, res, next) => {
   try {
-    const { data } = req.body;
+    const { data, password } = req.body;
+    let secure = false;
+    const databaseSnapshot = await adminDB.get();
+    databaseSnapshot.forEach((doc) => {
+      if (password === doc.data().password) {
+        secure = true;
+      }
+    });
+    if (!secure) {
+      return res.status(403).json({
+        error: 'No permission',
+      });
+    }
     if (!data) {
       return res.status(400).json({
         success: false,

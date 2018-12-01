@@ -72,15 +72,14 @@ exports.getUserInventoryFromSteamapis = async (req, res, next) => {
               },
             },
           };
-          if (tradable) {
-            result.push({
-              ...skin,
-              assetid: _.find(inventory.assets, asset => asset.classid === skin.classid && asset.instanceid === skin.instanceid).assetid,
-              icon_url: config.API.steam.getImgUrl(skin.icon_url),
-              price: skinFromSteam.prices.safe_ts.last_7d * (marketRate - 0.05),
-              overstock,
-            });
-          }
+          result.push({
+            ...skin,
+            assetid: _.find(inventory.assets, asset => asset.classid === skin.classid && asset.instanceid === skin.instanceid).assetid,
+            icon_url: config.API.steam.getImgUrl(skin.icon_url),
+            price: skinFromSteam.prices.safe_ts.last_7d * (marketRate - 0.05),
+            overstock,
+            tradable,
+          });
         });
         return res.status(200).json(result);
       }
@@ -262,19 +261,20 @@ exports.searchSkin = async (req, res, next) => {
 
 exports.updateDataInGame = async (req, res, next) => {
   try {
-    const { data, password } = req.body;
-    let secure = false;
-    const databaseSnapshot = await adminDB.get();
-    databaseSnapshot.forEach((doc) => {
-      if (password === doc.data().password) {
-        secure = true;
-      }
-    });
-    if (!secure) {
-      return res.status(403).json({
-        error: 'No permission',
-      });
-    }
+    const { data } = req.body;
+    // const { data, password } = req.body;
+    // let secure = false;
+    // const databaseSnapshot = await adminDB.get();
+    // databaseSnapshot.forEach((doc) => {
+    //   if (password === doc.data().password) {
+    //     secure = true;
+    //   }
+    // });
+    // if (!secure) {
+    //   return res.status(403).json({
+    //     error: 'No permission',
+    //   });
+    // }
     if (!data) {
       return res.status(400).json({
         success: false,

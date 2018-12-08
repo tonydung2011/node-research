@@ -4,6 +4,11 @@ const _ = require('lodash');
 const Firestore = require('@google-cloud/firestore');
 const path = require('path');
 const joi = require('joi');
+const SteamUser = require('steam-user');
+const SteamTotp = require('steam-totp');
+const moment = require('moment');
+const TradeOfferManager = require('steam-tradeoffer-manager');
+const steamGuardCredentials = require('../../../botCredentials.json');
 
 const db = new Firestore({
   projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
@@ -20,6 +25,14 @@ const schema = joi.object().keys({
   market_hash_name: joi.string().required(),
   tradable: joi.boolean().required(),
   marketRate: [joi.number(), joi.string()],
+});
+
+const client = new SteamUser();
+const manager = new TradeOfferManager({
+  steam: client,
+  domain: config.domain,
+  language: 'en',
+  pollInterval: -1,
 });
 
 exports.getUserInfo = async (req, res, next) => {
@@ -341,4 +354,68 @@ exports.authenticateAdmin = async (req, res, next) => {
       message: 'Internal server error',
     });
   }
+};
+
+exports.createOffer = (req, res) => {
+  const botId = req.body.botId || 0;
+  const {
+    tradeUrl, playerItems, botItems,
+  } = req.body;
+  if (!tradeUrl || typeof tradeUrl !== 'string') {
+    res.status(400).json({
+      success: false,
+      messages: 'Trade Url must be provided',
+    });
+  }
+  const logOnOption = {
+    accountName: config.botCredentials.botNames[botId],
+    password: config.botCredentials.botPasswords[botId],
+    twoFactorCode: SteamTotp.getAuthCode(steamGuardCredentials[botId].shared_secret),
+  };
+  client.logOn(logOnOption);
+  const offer = manager.createOffer(tradeUrl);
+  _.each(playerItems, (item) => {
+    offer.addTheirItem({
+      assetid: item.assetid,
+      appid: 570,
+      contextid: 2,
+    });
+  });
+  _.each(botItems, (item) => {
+    offer.addMyItem({
+      assetid: item.assetid,
+      appid: 570,
+      contextid: 2,
+    });
+  });
+
+  function onSendSuccess(err) {
+    if (err) {
+      res.status(400).json({
+        success: false,
+        message: err.cause,
+      });
+    } else {
+      res.status(200).json({
+        success: true,
+      });
+    }
+  }
+
+  function getUserInfoCallback(err, me, them) {
+    if (err) {
+      res.status(500).json({
+        success: false,
+        message: 'Your created offer cannot be proccess at current time. please try again later',
+      });
+    } else {
+      offer.setMessage(`This is an offer come from ${config.domain}. Offer created time:
+      ${moment().utc().format('dddd, MMMM Do YYYY, h:mm:ss a')}
+      User: ${me.personaName}
+      Bot: ${them.personaName}`);
+      offer.send(onSendSuccess);
+    }
+  }
+
+  offer.getUserDetails(getUserInfoCallback);
 };

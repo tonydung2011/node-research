@@ -7,6 +7,7 @@ require('dotenv-safe').load({
 });
 
 module.exports = {
+  domain: process.env.DOMAIN,
   env: process.env.NODE_ENV,
   port: process.env.PORT,
   jwtSecret: process.env.JWT_SECRET,
@@ -29,4 +30,8 @@ module.exports = {
   },
   whitelistOrigin: JSON.parse(process.env.WHITE_LIST_ORIGIN),
   botList: JSON.parse(process.env.BOTS),
+  botCredentials: {
+    botNames: JSON.parse(process.env.STEAM_BOT_NAME),
+    botPasswords: JSON.parse(process.env.STEAM_BOT_PASSWORD),
+  },
 };

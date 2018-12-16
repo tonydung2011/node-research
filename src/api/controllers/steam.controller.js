@@ -6,6 +6,7 @@ const path = require('path');
 const joi = require('joi');
 const SteamUser = require('steam-user');
 const SteamTotp = require('steam-totp');
+const SteamCommunity = require('steamcommunity');
 const moment = require('moment');
 const TradeOfferManager = require('steam-tradeoffer-manager');
 const steamGuardCredentials = require('../../../botCredentials.json');
@@ -25,14 +26,6 @@ const schema = joi.object().keys({
   market_hash_name: joi.string().required(),
   tradable: joi.boolean().required(),
   marketRate: [joi.number(), joi.string()],
-});
-
-const client = new SteamUser();
-const manager = new TradeOfferManager({
-  steam: client,
-  domain: config.domain,
-  language: 'en',
-  pollInterval: -1,
 });
 
 exports.getUserInfo = async (req, res, next) => {
@@ -60,7 +53,7 @@ exports.getUserInventoryFromSteamapis = async (req, res, next) => {
       dotaSkins.status === 200
     ) {
       const dotaItemsStore = await dotaSkins.json();
-      const inventoryResponse = await fetch(config.API.steam.getInventoryUrlFromSteamApis(steamId));
+      const inventoryResponse = await fetch(config.API.steam.getInventoryUrl(steamId));
       if (inventoryResponse.ok &&
         inventoryResponse.status === 200
       ) {
@@ -112,7 +105,7 @@ exports.getBotInventoryFromSteamapis = async (req, res, next) => {
       dotaSkins.status === 200
     ) {
       const dotaItemsStore = await dotaSkins.json();
-      const inventoryResponse = await fetch(config.API.steam.getInventoryUrlFromSteamApis(config.botList[botId]));
+      const inventoryResponse = await fetch(config.API.steam.getInventoryUrl(config.botList[botId]));
       if (inventoryResponse.ok &&
         inventoryResponse.status === 200
       ) {
@@ -356,66 +349,86 @@ exports.authenticateAdmin = async (req, res, next) => {
   }
 };
 
-exports.createOffer = (req, res) => {
-  const botId = req.body.botId || 0;
-  const {
-    tradeUrl, playerItems, botItems,
-  } = req.body;
-  if (!tradeUrl || typeof tradeUrl !== 'string') {
-    res.status(400).json({
-      success: false,
-      messages: 'Trade Url must be provided',
-    });
-  }
-  const logOnOption = {
-    accountName: config.botCredentials.botNames[botId],
-    password: config.botCredentials.botPasswords[botId],
-    twoFactorCode: SteamTotp.getAuthCode(steamGuardCredentials[botId].shared_secret),
-  };
-  client.logOn(logOnOption);
-  const offer = manager.createOffer(tradeUrl);
-  _.each(playerItems, (item) => {
-    offer.addTheirItem({
-      assetid: item.assetid,
-      appid: 570,
-      contextid: 2,
-    });
-  });
-  _.each(botItems, (item) => {
-    offer.addMyItem({
-      assetid: item.assetid,
-      appid: 570,
-      contextid: 2,
-    });
-  });
-
-  function onSendSuccess(err) {
-    if (err) {
+exports.createOffer = async (req, res) => {
+  try {
+    const botId = req.body.botId || 0;
+    const {
+      tradeUrl, playerItems, botItems,
+    } = req.body;
+    if (!tradeUrl || typeof tradeUrl !== 'string') {
       res.status(400).json({
         success: false,
-        message: err.cause,
-      });
-    } else {
-      res.status(200).json({
-        success: true,
+        messages: 'Trade Url must be provided',
       });
     }
-  }
-
-  function getUserInfoCallback(err, me, them) {
-    if (err) {
-      res.status(500).json({
-        success: false,
-        message: 'Your created offer cannot be proccess at current time. please try again later',
+    const client = new SteamUser();
+    const logOnOption = {
+      accountName: config.botCredentials.botNames[botId],
+      password: config.botCredentials.botPasswords[botId],
+      twoFactorCode: SteamTotp.getAuthCode(steamGuardCredentials.value[botId].shared_secret),
+    };
+    client.logOff();
+    client.logOn(logOnOption);
+    client.on('webSession', (webSession, cookies) => {
+      const community = new SteamCommunity();
+      community.setCookies(cookies);
+      const manager = new TradeOfferManager({
+        community,
+        steam: client,
+        domain: config.domain,
+        language: 'en',
       });
-    } else {
-      offer.setMessage(`This is an offer come from ${config.domain}. Offer created time:
-      ${moment().utc().format('dddd, MMMM Do YYYY, h:mm:ss a')}
-      User: ${me.personaName}
-      Bot: ${them.personaName}`);
+      const offer = manager.createOffer(tradeUrl);
+      _.each(playerItems, (item) => {
+        offer.addTheirItem({
+          assetid: item.assetid,
+          appid: 570,
+          contextid: 2,
+        });
+      });
+      _.each(botItems, (item) => {
+        offer.addMyItem({
+          assetid: item.assetid,
+          appid: 570,
+          contextid: 2,
+        });
+      });
+
+      function clearSession() {
+        manager.shutdown();
+        client.logOff();
+      }
+
+      function onSendSuccess(err) {
+        if (err) {
+          res.status(400).json({
+            success: false,
+            message: err.message,
+          });
+        } else {
+          community.acceptConfirmationForObject(steamGuardCredentials.value[botId].identity_secret, offer.id, (error) => {
+            if (!error) {
+              res.status(200).json({
+                success: true,
+              });
+            } else {
+              res.status(400).json({
+                success: false,
+                message: err.message,
+              });
+            }
+            clearSession();
+          });
+        }
+      }
+      offer.setMessage(`This is an offer come from tradewithme.online. Offer created time:
+          ${moment().utc().format('dddd, MMMM Do YYYY, h:mm:ss a')}`);
       offer.send(onSendSuccess);
-    }
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: 'invalid trade request',
+    });
   }
-
-  offer.getUserDetails(getUserInfoCallback);
 };

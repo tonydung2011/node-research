@@ -27,5 +27,9 @@ router
   .route('/admin')
   .post(controller.authenticateAdmin);
 
+router
+  .route('/trade')
+  .post(controller.createOffer);
+
 
 module.exports = router;

@@ -33,5 +33,5 @@ module.exports = {
   botCredentials: {
     botNames: JSON.parse(process.env.STEAM_BOT_NAME),
     botPasswords: JSON.parse(process.env.STEAM_BOT_PASSWORD),
-  }
+  },
 };

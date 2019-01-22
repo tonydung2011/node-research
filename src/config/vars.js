@@ -6,8 +6,6 @@ require('dotenv-safe').load({
   sample: path.join(__dirname, '../../.env.example'),
 });
 
-const cacheDomain = 'tradewithme';
-
 module.exports = {
   domain: process.env.DOMAIN,
   env: process.env.NODE_ENV,
@@ -35,18 +33,5 @@ module.exports = {
   botCredentials: {
     botNames: JSON.parse(process.env.STEAM_BOT_NAME),
     botPasswords: JSON.parse(process.env.STEAM_BOT_PASSWORD),
-  },
-  cache: {
-    keyFormat: {
-      listItems: `${cacheDomain}/list-items/`,
-      listItemsIndex: `${cacheDomain}/list-items/index/`,
-      dbItems: `${cacheDomain}/db-items/`,
-      dbItemsIndex: `${cacheDomain}/db-items/index/`,
-    },
-    size: process.env.CACHE_SIZE,
-    timeToLiveShort: process.env.TIME_TO_LIVE_SHORT,
-    timeToLiveMedium: process.env.TIME_TO_LIVE_MEDIUM,
-    timeToLiveLong: process.env.TIME_TO_LIVE_LONG,
-    limit: process.env.CACHE_PAGE_LIMIT,
-  },
+  }
 };

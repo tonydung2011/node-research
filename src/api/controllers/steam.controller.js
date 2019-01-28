@@ -19,7 +19,7 @@ const settings = {
   timestampsInSnapshots: true,
 };
 db.settings(settings);
-const dotaItems = db.collection('dota-items');
+const dotaItemsInfo = db.collection('dota-items-info');
 const adminDB = db.collection('admin');
 
 const schema = joi.object().keys({
@@ -47,105 +47,74 @@ exports.getUserInfo = async (req, res, next) => {
 exports.getUserInventoryFromSteamapis = async (req, res, next) => {
   try {
     const steamId = req.params.steamid;
-    const dotaSkins = await fetch(config.API.steam.getAllSkinInGame());
-    if (
-      dotaSkins.ok &&
-      dotaSkins.status === 200
-    ) {
-      const dotaItemsStore = await dotaSkins.json();
-      const inventoryResponse = await fetch(config.API.steam.getInventoryUrl(steamId));
-      if (inventoryResponse.ok &&
+    const inventoryResponse = await fetch(config.API.steam.getInventoryUrl(steamId));
+    if (inventoryResponse.ok &&
         inventoryResponse.status === 200
-      ) {
-        const inventory = await inventoryResponse.json();
-        const dotaItemsDB = [];
-        const databaseSnapshot = await dotaItems.get();
-        databaseSnapshot.forEach(doc => dotaItemsDB.push(doc.data()));
-        const result = [];
-        _.each(inventory.descriptions, (skin) => {
-          const {
-            marketRate,
-            tradable,
-            overstock,
-          } = _.find(dotaItemsDB, i => i.market_hash_name === skin.market_hash_name) || {
-            marketRate: 1,
-            tradable: true,
-          };
-          const skinFromSteam = _.find(dotaItemsStore.data, i => i.market_hash_name === skin.market_hash_name) || {
-            prices: {
-              safe_ts: {
-                last_7d: 0,
-              },
-            },
-          };
+    ) {
+      const inventory = await inventoryResponse.json();
+      const databaseSnapshot = await dotaItemsInfo.get();
+      const result = [];
+      _.each(inventory.descriptions, (skin) => {
+        const doc = databaseSnapshot.doc(skin.market_hash_name);
+        if (doc.exists) {
+          const jsonDoc = doc.data();
           result.push({
-            ...skin,
+            ...jsonDoc,
             assetid: _.find(inventory.assets, asset => asset.classid === skin.classid && asset.instanceid === skin.instanceid).assetid,
             icon_url: config.API.steam.getImgUrl(skin.icon_url),
-            price: skinFromSteam.prices.safe_ts.last_7d * (marketRate - 0.05),
-            overstock,
-            tradable,
+            price: jsonDoc.prices.safe_ts.last_7d * (jsonDoc.marketRate - 0.05),
           });
-        });
-        return res.status(200).json(result);
-      }
+        }
+      });
+      return res.status(200).json(result);
     }
-    return res.status(400).send('Bad request');
+    return res.status(400).json({
+      success: false,
+      message: 'Error while fetching data',
+    });
   } catch (error) {
-    return res.status(500).send('Internal server error');
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
   }
 };
 
 exports.getBotInventoryFromSteamapis = async (req, res, next) => {
   try {
-    const dotaSkins = await fetch(config.API.steam.getAllSkinInGame());
     const botId = req.query.bot || 0;
-    if (
-      dotaSkins.ok &&
-      dotaSkins.status === 200
-    ) {
-      const dotaItemsStore = await dotaSkins.json();
-      const inventoryResponse = await fetch(config.API.steam.getInventoryUrl(config.botList[botId]));
-      if (inventoryResponse.ok &&
+    const inventoryResponse = await fetch(config.API.steam.getInventoryUrl(config.botList[botId]));
+    if (inventoryResponse.ok &&
         inventoryResponse.status === 200
-      ) {
-        const inventory = await inventoryResponse.json();
-        const dotaItemsDB = [];
-        const databaseSnapshot = await dotaItems.get();
-        databaseSnapshot.forEach(doc => dotaItemsDB.push(doc.data()));
-        const result = [];
-        _.each(inventory.descriptions, (skin) => {
-          const {
-            marketRate,
-            tradable,
-            overstock,
-          } = _.find(dotaItemsDB, i => i.market_hash_name === skin.market_hash_name) || {
-            marketRate: 1,
-            tradable: true,
-          };
-          const skinFromSteam = _.find(dotaItemsStore.data, i => i.market_hash_name === skin.market_hash_name) || {
-            prices: {
-              safe_ts: {
-                last_7d: 0,
-              },
-            },
-          };
-          if (tradable) {
+    ) {
+      const inventory = await inventoryResponse.json();
+      const databaseSnapshot = await dotaItemsInfo.get();
+      const result = [];
+      _.each(inventory.descriptions, (skin) => {
+        const doc = databaseSnapshot.doc(skin.market_hash_name);
+        if (doc.exists) {
+          const jsonDoc = doc.data();
+          if (doc.tradable) {
             result.push({
-              ...skin,
+              ...jsonDoc,
               assetid: _.find(inventory.assets, asset => asset.classid === skin.classid && asset.instanceid === skin.instanceid).assetid,
               icon_url: config.API.steam.getImgUrl(skin.icon_url),
-              price: skinFromSteam.prices.safe_ts.last_7d * marketRate,
-              overstock,
+              price: jsonDoc.prices.safe_ts.last_7d * (jsonDoc.marketRate - 0.05),
             });
           }
-        });
-        return res.status(200).json(result);
-      }
+        }
+      });
+      return res.status(200).json(result);
     }
-    return res.status(400).send('Bad request');
+    return res.status(400).json({
+      success: false,
+      message: 'Error while fetching data',
+    });
   } catch (error) {
-    return res.status(500).send('Internal server error');
+    return res.status(500).json({
+      success: false,
+      message: 'Error in logic',
+    });
   }
 };
 
@@ -157,105 +126,56 @@ exports.searchSkin = async (req, res, next) => {
     rarity = '', hero = '', market_hash_name = '', sort = 'price',
   } = req.query;
   try {
-    const responseFromAPI = await fetch(config.API.steam.getAllSkinInGame());
-    if (responseFromAPI.ok &&
-      responseFromAPI.status === 200
-    ) {
-      const dotaItemsStore = await responseFromAPI.json();
-      const dotaItemsDB = [];
-      const databaseSnapshot = await dotaItems.get();
-      databaseSnapshot.forEach(doc => dotaItemsDB.push(doc.data()));
-      let dotaItemsBussiness = _.map(dotaItemsStore.data, (item) => {
-        const itemFromDB = _.find(dotaItemsDB, doc => doc.market_hash_name === item.market_hash_name);
-        if (itemFromDB) {
-          return {
-            ...item,
-            marketRate: itemFromDB.marketRate,
-            tradable: itemFromDB.tradable,
-            overstock: itemFromDB.overstock,
-          };
-        }
-        return {
-          ...item,
-          marketRate: 1,
-          tradable: true,
-          overstock: null,
-        };
-      });
+    const databaseSnapshot = await dotaItemsInfo.get();
 
-      limit = !isNaN(parseInt(limit, 10)) ? parseInt(limit, 10) : 10; /* eslint-disable-line */
-      page = !isNaN(parseInt(page, 10)) ? parseInt(page, 10) : 1; /* eslint-disable-line */
-      minPrice = !isNaN(parseInt(minPrice, 10)) ? parseInt(minPrice, 10) : 0; /* eslint-disable-line */
-      maxPrice = !isNaN(parseInt(maxPrice, 10)) ? parseInt(maxPrice, 10) : 1000; /* eslint-disable-line */
+    limit = !isNaN(parseInt(limit, 10)) ? parseInt(limit, 10) : 10; /* eslint-disable-line */
+    page = !isNaN(parseInt(page, 10)) ? parseInt(page, 10) : 1; /* eslint-disable-line */
+    minPrice = !isNaN(parseInt(minPrice, 10)) ? parseInt(minPrice, 10) : 0; /* eslint-disable-line */
+    maxPrice = !isNaN(parseInt(maxPrice, 10)) ? parseInt(maxPrice, 10) : 1000; /* eslint-disable-line */
 
-      if (!tradable || tradable !== 'yes' || tradable !== 'no') {
-        tradable = 'all';
-      }
-      const heroReg = new RegExp(hero, 'i');
-      const rarityReg = new RegExp(rarity, 'i');
-      const nameReg = new RegExp(market_hash_name, 'i');
-
-      dotaItemsBussiness = _.filter(dotaItemsBussiness, item => (
-        heroReg.test(item.hero) &&
-        rarityReg.test(item.rarity) &&
-        nameReg.test(item.market_hash_name) &&
-        item.prices.safe_ts.last_24h >= minPrice &&
-        item.prices.safe_ts.last_24h <= maxPrice &&
-        (
-          (
-            tradable === 'yes' &&
-            item.tradable
-          ) || (
-            tradable === 'no' &&
-            !item.tradable
-          ) || (
-            tradable === 'all'
-          )
-        )
-      ));
-
-      switch (sort) {
-        case 'price-24h':
-          dotaItemsBussiness = _.sortBy(dotaItemsBussiness, i => i.prices.safe_ts.last_24h);
-          break;
-        case 'price-7d':
-          dotaItemsBussiness = _.sortBy(dotaItemsBussiness, i => i.prices.safe_ts.last_7d);
-          break;
-        case 'price-30d':
-          dotaItemsBussiness = _.sortBy(dotaItemsBussiness, i => i.prices.safe_ts.last_30d);
-          break;
-        case 'name':
-          dotaItemsBussiness = _.sortBy(dotaItemsBussiness, i => i.market_hash_name);
-          break;
-        case 'hero':
-          dotaItemsBussiness = _.sortBy(dotaItemsBussiness, i => i.hero);
-          break;
-        case 'rarity':
-          dotaItemsBussiness = _.sortBy(dotaItemsBussiness, i => i.rarity);
-          break;
-        default:
-          dotaItemsBussiness = _.sortBy(dotaItemsBussiness, i => i.market_hash_name);
-          break;
-      }
-
-      const pagination = _.chunk(dotaItemsBussiness, limit);
-      if (page > pagination.length) {
-        page = pagination.length;
-      }
-
-      return res.status(200).json({
-        page,
-        limit,
-        appId: responseFromAPI.appID,
-        context: responseFromAPI.part,
-        total: dotaItemsBussiness.length,
-        success: true,
-        data: pagination.length !== 0 ? pagination[page - 1] : [],
-      });
+    if (!tradable || tradable !== 'yes' || tradable !== 'no') {
+      tradable = 'all';
     }
-    return res.status(500).json({
-      success: false,
-      message: 'Steam Service has fail',
+
+    let order;
+
+    switch (sort) {
+      case 'price-24h':
+        order = 'priceLast24h';
+        break;
+      case 'price-7d':
+        order = 'priceLast7d';
+        break;
+      case 'price-30d':
+        order = 'priceLast30d';
+        break;
+      case 'name':
+        order = 'market_hash_name';
+        break;
+      case 'hero':
+        order = 'hero';
+        break;
+      case 'rarity':
+        order = 'rarity';
+        break;
+      default:
+        order = 'market_hash_name';
+        break;
+    }
+
+    const query = databaseSnapshot
+      .where('hero', '>=', hero)
+      .where('rarity', '>=', rarity)
+      .where('priceLast7d', '>=', minPrice)
+      .where('priceLast7d', '<=', maxPrice)
+      .where('market_hash_name', '>=', market_hash_name);
+
+    return res.status(200).json({
+      success: true,
+      page,
+      limit,
+      total: query.size,
+      data: query.orderBy(order).limit(limit).startAfter(limit * (page - 1)),
     });
   } catch (error) {
     return res.status(500).json({
@@ -301,22 +221,12 @@ exports.updateDataInGame = async (req, res, next) => {
       });
     }
     _.each(data, (doc) => {
-      const docDb = dotaItems.doc(doc.market_hash_name);
-      if (!docDb.exists) {
-        docDb.set({
-          market_hash_name: doc.market_hash_name,
-          tradable: doc.tradable,
-          marketRate: doc.marketRate,
-          overstock: doc.overstock,
-        });
-      } else {
-        dotaItems.update({
-          market_hash_name: doc.market_hash_name,
-          tradable: doc.tradable,
-          marketRate: doc.marketRate,
-          overstock: doc.overstock,
-        });
-      }
+      const docDb = dotaItemsInfo.doc(doc.market_hash_name);
+      docDb.set({
+        tradable: doc.tradable,
+        marketRate: doc.marketRate,
+        overstock: doc.overstock,
+      });
     });
     return res.status(200).json({
       success: true,
@@ -340,6 +250,50 @@ exports.authenticateAdmin = async (req, res, next) => {
     });
     return res.status(200).json({
       success,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+exports.updateDatabase = async (req, res, next) => {
+  try {
+    const responseFromAPI = await fetch(config.API.steam.getAllSkinInGame());
+    if (responseFromAPI.ok &&
+      responseFromAPI.status === 200
+    ) {
+      const dotaItemsStore = await responseFromAPI.json();
+      _.each(dotaItemsStore.data, (doc) => {
+        const docDb = dotaItemsInfo.doc(doc.market_hash_name);
+        if (!docDb.exists) {
+          docDb.set({
+            ...doc,
+            tradable: true,
+            marketRate: 1,
+            overstock: null,
+            priceLast24h: doc.prices.safe_ts.last_24h,
+            priceLast7d: doc.prices.safe_ts.last_7d,
+            priceLast30d: doc.prices.safe_ts.last_30d,
+          });
+        } else {
+          dotaItemsInfo.update({
+            ...doc,
+            priceLast24h: doc.prices.safe_ts.last_24h,
+            priceLast7d: doc.prices.safe_ts.last_7d,
+            priceLast30d: doc.prices.safe_ts.last_30d,
+          });
+        }
+      });
+      return res.status(200).json({
+        success: true,
+      });
+    }
+    return res.status(500).json({
+      success: false,
+      message: 'Error while fetching API',
     });
   } catch (error) {
     return res.status(500).json({

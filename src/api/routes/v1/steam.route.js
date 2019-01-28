@@ -21,7 +21,7 @@ router
 
 router
   .route('/store')
-  .post(controller.updateDataInGame);
+  .put(controller.updateDataInGame);
 
 router
   .route('/admin')
@@ -30,6 +30,10 @@ router
 router
   .route('/trade')
   .post(controller.createOffer);
+
+router
+  .route('/update')
+  .put(controller.updateDatabase);
 
 
 module.exports = router;

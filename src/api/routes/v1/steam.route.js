@@ -24,16 +24,12 @@ router
   .put(controller.updateDataInGame);
 
 router
-  .route('/admin')
-  .post(controller.authenticateAdmin);
-
-router
   .route('/trade')
   .post(controller.createOffer);
 
 router
   .route('/update')
-  .put(controller.updateDatabase);
+  .post(controller.updateDatabase);
 
 
 module.exports = router;

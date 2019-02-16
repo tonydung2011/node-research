@@ -6,6 +6,10 @@
     "no-use-before-define": ["error", { "variables": false }],
     "no-multi-str": 0,
     "max-len": "off",
+    "arrow-parens": "off",
+    "function-paren-newline": "off",
+    "comma-dangle": "off",
+    "func-names": "off",
     "import/prefer-default-export": "off"
   },
   "env": {

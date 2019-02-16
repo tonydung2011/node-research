@@ -2,21 +2,25 @@ version: "2"
 services:
   boilerplate-api:
     build: .
-    environment:
-      - JWT_SECRET=hoang-danh-steam-bot
-      - JWT_EXPIRATION_MINUTES=15
-      - PORT=5000
-      - DOTA2_ID=570
-      - DOTA2_CONTEXT=2
-      - STEAM_API_KEY=fzUIsrIJopol6bwQo6s-GNAhZ1Q
-      - STEAM_POWERED_API_KEY=CF75B58E693F99BD0C9ACBD60157EA48
-      - GOOGLE_CLOUD_PROJECT_ID=steam-220215
-      - WHITE_LIST_ORIGIN=["https://steam-220215.appspot.com", "https://tradewithme.online", "https://madama-dev"]
-      - DOMAIN=api.tradewithme.online
-      - BOTS=["76561198366407443", "76561198368731785"]
-      - STEAM_BOT_NAME=["marketbot111", "marketbot112"]
-      - STEAM_BOT_PASSWORD=["Tivac123gh6pm", "tm4c123gh6pm"]
+    env_file: .env
     volumes:
       - .:/app
     ports:
       - "5000:5000"
+      - "9222:9222"
+
+  mongo:
+    image: mongo
+    volumes:
+      - ./script/mongod:/docker-entrypoint-initdb.d
+      - mongoDataTradewithme:/data/db
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root_password
+      MONGO_INITDB_DATABASE: tradewithme_database
+
+volumes:
+  mongoDataTradewithme:

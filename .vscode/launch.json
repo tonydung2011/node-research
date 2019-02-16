@@ -19,19 +19,20 @@
     },
     {
       "type": "node",
-      "request": "launch",
-      "name": "node",
-      "runtimeExecutable": "node",
-      "runtimeArgs": [
-        "--inspect"
-      ],
-      "program": "${workspaceRoot}/src/index.js",
+      "request": "attach",
+      "name": "Attach to Docker",
+      "port": 9222,
       "restart": true,
-      "port": 9229,
-      "protocol": "inspector",
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen"
-    }
+      "timeout": 20000,
+      "localRoot": "${workspaceFolder}",
+      "remoteRoot": "/app",
+      "outFiles": [
+          "${workspaceFolder}/dist/**/*.js"
+      ],
+      "skipFiles": [
+          "<node_internals>/**/*.js",
+      ]
+  }
   ],
   "compounds": []
 }

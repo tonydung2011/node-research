@@ -12,6 +12,7 @@ module.exports = {
   port: process.env.PORT,
   jwtSecret: process.env.JWT_SECRET,
   jwtExpirationInterval: process.env.JWT_EXPIRATION_MINUTES,
+  maxPrice: process.env.MAX_PRICE,
   mongo: {
     uri: process.env.NODE_ENV === 'test'
       ? process.env.MONGO_URI_TESTS
@@ -34,4 +35,11 @@ module.exports = {
     botNames: JSON.parse(process.env.STEAM_BOT_NAME),
     botPasswords: JSON.parse(process.env.STEAM_BOT_PASSWORD),
   },
+  cache: {
+    timeToLiveShort: 1000 * 60 * 60 * 24,
+    timeToLiveLong: 1000 * 60 * 60 * 24 * 30,
+    keyFormat: {
+      steamItem: 'steam_item',
+    }
+  }
 };

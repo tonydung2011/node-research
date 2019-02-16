@@ -50,3 +50,4 @@ yarn.lock
 
 #app credentials
 credentials.json
+deploy.sh

@@ -11,9 +11,18 @@ const settings = {
 };
 db.settings(settings);
 
-const dotaItems = db.collection('dota-items');
+const dotaItemsInfo = db.collection('dota-items-info');
 
-export const getItems = (index, limit) => new Promise((resolve, reject) =>
-  dotaItems.orderBy('market_hash_name').startAt(index).limit(limit).get()
-    .then(snapshot => resolve(snapshot.docs))
-    .catch(() => reject()));
+export const getSteamItem = id =>
+  new Promise((resolve) =>
+    dotaItemsInfo
+      .get()
+      .then(snapshot => {
+        const doc = snapshot.doc(id);
+        if (doc.exists) {
+          return resolve(doc.data());
+        }
+        return resolve(undefined);
+      })
+      .catch(() => resolve(null))
+  );

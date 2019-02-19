@@ -17,7 +17,6 @@ const schema = joi.object().keys({
   marketRate: [joi.number(), joi.string()],
 });
 
-
 exports.getUserInfo = async (req, res, next) => {
   try {
     const steamId = req.params.steamid;
@@ -40,23 +39,14 @@ exports.getUserInventoryFromSteamapis = async (req, res, next) => {
     );
     if (inventoryResponse.ok && inventoryResponse.status === 200) {
       const inventory = await inventoryResponse.json();
-      const result = [];
-      await _.each(inventory.descriptions, async skin => {
-        const doc = await DotaItem.findByName(skin.market_hash_name).exec();
-        if (doc) {
-          result.push({
-            ...doc,
-            descriptions: doc.descriptions,
-            tags: doc.tags,
-            assetid: _.find(
-              inventory.assets,
-              asset =>
-                asset.classid === skin.classid &&
-                asset.instanceid === skin.instanceid
-            ).assetid,
-          });
-        }
-      });
+      const result = _.filter(
+        await Promise.all(
+          _.map(inventory.descriptions, skin =>
+            DotaItem.findByName(skin.market_hash_name)
+          )
+        ),
+        d => d
+      );
       return res.status(200).json(result);
     }
     return res.status(400).json({
@@ -79,25 +69,14 @@ exports.getBotInventoryFromSteamapis = async (req, res, next) => {
     );
     if (inventoryResponse.ok && inventoryResponse.status === 200) {
       const inventory = await inventoryResponse.json();
-      const result = [];
-      await _.each(inventory.descriptions, async skin => {
-        const doc = await DotaItem.findByName(skin.market_hash_name).exec();
-        if (doc) {
-          if (doc.tradable) {
-            result.push({
-              ...doc,
-              descriptions: doc.descriptions,
-              tags: doc.tags,
-              assetid: _.find(
-                inventory.assets,
-                asset =>
-                  asset.classid === skin.classid &&
-                  asset.instanceid === skin.instanceid
-              ).assetid,
-            });
-          }
-        }
-      });
+      const result = _.filter(
+        await Promise.all(
+          _.map(inventory.descriptions, skin =>
+            DotaItem.findByName(skin.market_hash_name)
+          )
+        ),
+        d => d
+      );
       return res.status(200).json(result);
     }
     return res.status(400).json({
@@ -233,13 +212,17 @@ exports.updateDataInGame = async (req, res, next) => {
       });
     }
     await _.each(data, async doc => {
-      await DotaItem.findOneAndUpdate(doc.market_hash_name, {
-        tradable: doc.tradable,
-        marketRate: doc.marketRate,
-        overstock: doc.overstock,
-      }, {
-        new: true,
-      }).exec();
+      await DotaItem.findOneAndUpdate(
+        doc.market_hash_name,
+        {
+          tradable: doc.tradable,
+          marketRate: doc.marketRate,
+          overstock: doc.overstock,
+        },
+        {
+          new: true,
+        }
+      ).exec();
     });
     return res.status(200).json({
       success: true,
@@ -258,30 +241,37 @@ exports.updateDatabase = async (req, res, next) => {
     if (responseFromAPI.ok && responseFromAPI.status === 200) {
       const dotaItemsStore = await responseFromAPI.json();
       await _.each(dotaItemsStore.data, doc => {
-        DotaItem.findOneAndUpdate({
-          marketHashName: doc.market_hash_name
-        }, {
-          hero: doc.hero,
-          image: doc.image_url,
-          marketHashName: doc.market_hash_name,
-          marketName: doc.market_name,
-          priceLast24h: doc.prices.safe_ts.last_24h,
-          priceLast7d: doc.prices.safe_ts.last_7d,
-          priceLast30d: doc.prices.safe_ts.last_30d,
-          priceLatest: doc.prices.latest,
-          priceMax: doc.prices.max,
-          priceMin: doc.prices.min,
-          priceSafe: doc.prices.safe,
-          sold24h: doc.prices.sold.last_24h,
-          sold7d: doc.prices.sold.last_7d,
-          sold30d: doc.prices.sold.last_30d,
-          unstable: doc.unstable,
-          unstableReason: doc.unstable_reason,
-          quality: doc.quality,
-          rarity: doc.rarity,
-        }, {
-          upsert: true,
-        }).exec();
+        DotaItem.findOneAndUpdate(
+          {
+            marketHashName: doc.market_hash_name,
+          },
+          {
+            hero: doc.hero,
+            image: doc.image,
+            marketHashName: doc.market_hash_name,
+            marketName: doc.market_name,
+            priceLast24h: doc.prices.safe_ts.last_24h,
+            priceLast7d: doc.prices.safe_ts.last_7d,
+            priceLast30d: doc.prices.safe_ts.last_30d,
+            priceLatest: doc.prices.latest,
+            priceMax: doc.prices.max,
+            priceMin: doc.prices.min,
+            priceSafe: doc.prices.safe,
+            sold24h: doc.prices.sold.last_24h,
+            sold7d: doc.prices.sold.last_7d,
+            sold30d: doc.prices.sold.last_30d,
+            unstable: doc.unstable,
+            unstableReason: doc.unstable_reason,
+            quality: doc.quality,
+            rarity: doc.rarity,
+            updateAt: Date.now(),
+          },
+          {
+            setDefaultsOnInsert: true,
+            upsert: true,
+            new: true,
+          }
+        ).exec();
       });
       return res.status(200).json({
         success: true,

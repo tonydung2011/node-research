@@ -10,7 +10,10 @@ const moment = require('moment-timezone');
 const dotaItemSchema = new mongoose.Schema({
   hero: String,
   image: String,
-  marketRate: Number,
+  marketRate: {
+    type: Number,
+    default: 1,
+  },
   marketHashName: {
     type: String,
     required: true,
@@ -19,7 +22,10 @@ const dotaItemSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  overstock: Number,
+  overstock: {
+    type: Number,
+    default: null,
+  },
   priceLast24h: Number,
   priceLast7d: Number,
   priceLast30d: Number,
@@ -34,9 +40,15 @@ const dotaItemSchema = new mongoose.Schema({
   unstableReason: String,
   quality: String,
   rarity: String,
-  tradable: Boolean,
+  tradable: {
+    type: Boolean,
+    default: true,
+  },
   updateAt: Date,
-  createdAt: Date,
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  }
 });
 
 /**
@@ -45,23 +57,16 @@ const dotaItemSchema = new mongoose.Schema({
  * - validations
  * - virtuals
  */
-dotaItemSchema.pre('save', async function preSaveHook(next) {
+dotaItemSchema.pre('save', async function (next) {
   this.updateAt = moment().toString();
   next();
 });
-dotaItemSchema.pre('findOneAndUpdate', async function preSaveHook(next) {
+dotaItemSchema.pre('findOneAndUpdate', async function (next) {
   this.updateAt = moment().toString();
   next();
 });
-dotaItemSchema.pre('update', async function preSaveHook(next) {
+dotaItemSchema.pre('update', async function (next) {
   this.updateAt = moment().toString();
-  next();
-});
-dotaItemSchema.pre('create', async function preCreateHook(next) {
-  this.createdAt = moment().toString();
-  this.tradable = true;
-  this.marketRate = 1;
-  this.overstock = null;
   next();
 });
 

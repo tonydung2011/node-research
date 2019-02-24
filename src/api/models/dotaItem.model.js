@@ -86,7 +86,7 @@ dotaItemSchema.statics.searchDocWithFilter = function (filter = {}) {
   };
   const newFilter = _.merge(defaultFilter, filter);
   return this.find({
-    priceLast7d: { $gt: newFilter.minPrice, $lt: newFilter.maxPrice },
+    priceLast7d: { $gte: newFilter.minPrice, $lte: newFilter.maxPrice },
   })
     .where('marketHashName')
     .regex(new RegExp(newFilter.search))
@@ -97,6 +97,25 @@ dotaItemSchema.statics.searchDocWithFilter = function (filter = {}) {
     .sort(newFilter.order)
     .limit(newFilter.limit)
     .skip((newFilter.page - 1) * newFilter.limit);
+};
+dotaItemSchema.statics.countDocWithFilter = function (filter = {}) {
+  const defaultFilter = {
+    search: '',
+    rarity: '',
+    hero: '',
+    minPrice: 0,
+    maxPrice: configs.maxPrice,
+  };
+  const newFilter = _.merge(defaultFilter, filter);
+  return this.count({
+    priceLast7d: { $gte: newFilter.minPrice, $lte: newFilter.maxPrice },
+  })
+    .where('marketHashName')
+    .regex(new RegExp(newFilter.search))
+    .where('rarity')
+    .regex(new RegExp(newFilter.rarity))
+    .where('hero')
+    .regex(new RegExp(newFilter.hero));
 };
 dotaItemSchema.statics.findByName = function (name) {
   return this.findOne({ marketHashName: name });

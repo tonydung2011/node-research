@@ -10,6 +10,7 @@ const joi = require('joi');
 const steamGuardCredentials = require('../../../botCredentials.json');
 const DotaItem = require('../models/dotaItem.model');
 const configs = require('../../config/vars');
+const { combineDescriptionAndAssets } = require('../utils/utils');
 
 const schema = joi.object().keys({
   market_hash_name: joi.string().required(),
@@ -41,8 +42,23 @@ exports.getUserInventoryFromSteamapis = async (req, res, next) => {
       const inventory = await inventoryResponse.json();
       const result = _.filter(
         await Promise.all(
-          _.map(inventory.descriptions, skin =>
-            DotaItem.findByName(skin.market_hash_name)
+          _.map(
+            combineDescriptionAndAssets(
+              inventory.assets,
+              inventory.descriptions
+            ),
+            skin =>
+              DotaItem.findByName(skin.market_hash_name).then(found =>
+                (found
+                  ? {
+                    ...found._doc,
+                    tags: skin.tags,
+                    assetid: skin.assetid,
+                    marketMarketableRestriction: skin.market_marketable_restriction,
+                    price: found._doc.priceLast7d * found._doc.marketRate,
+                  }
+                  : null)
+              )
           )
         ),
         d => d
@@ -71,8 +87,23 @@ exports.getBotInventoryFromSteamapis = async (req, res, next) => {
       const inventory = await inventoryResponse.json();
       const result = _.filter(
         await Promise.all(
-          _.map(inventory.descriptions, skin =>
-            DotaItem.findByName(skin.market_hash_name)
+          _.map(
+            combineDescriptionAndAssets(
+              inventory.assets,
+              inventory.descriptions
+            ),
+            skin =>
+              DotaItem.findByName(skin.market_hash_name).then(found =>
+                (found
+                  ? {
+                    ...found._doc,
+                    tags: skin.tags,
+                    assetid: skin.assetid,
+                    marketMarketableRestriction: skin.market_marketable_restriction,
+                    price: found._doc.priceLast7d * found._doc.marketRate,
+                  }
+                  : null)
+              )
           )
         ),
         d => d
@@ -155,13 +186,20 @@ exports.searchSkin = async (req, res, next) => {
       minPrice,
       maxPrice,
     }).exec();
+    const total = await DotaItem.countDocWithFilter({
+      search: market_hash_name,
+      rarity,
+      hero,
+      minPrice,
+      maxPrice,
+    }).exec();
 
     return res.status(200).json({
       success: true,
       page,
       limit,
       data,
-      total: data.length,
+      total,
     });
   } catch (error) {
     return res.status(500).json({
@@ -213,7 +251,9 @@ exports.updateDataInGame = async (req, res, next) => {
     }
     await _.each(data, async doc => {
       await DotaItem.findOneAndUpdate(
-        doc.market_hash_name,
+        {
+          marketHashName: doc.marketHashName,
+        },
         {
           tradable: doc.tradable,
           marketRate: doc.marketRate,
@@ -246,7 +286,8 @@ exports.updateDatabase = async (req, res, next) => {
             marketHashName: doc.market_hash_name,
           },
           {
-            hero: doc.hero,
+            hero: doc.hero || '',
+            rarity: doc.rarity || '',
             image: doc.image,
             marketHashName: doc.market_hash_name,
             marketName: doc.market_name,
@@ -263,7 +304,6 @@ exports.updateDatabase = async (req, res, next) => {
             unstable: doc.unstable,
             unstableReason: doc.unstable_reason,
             quality: doc.quality,
-            rarity: doc.rarity,
             updateAt: Date.now(),
           },
           {

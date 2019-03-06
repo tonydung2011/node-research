@@ -36,10 +36,12 @@ module.exports = {
     botPasswords: JSON.parse(process.env.STEAM_BOT_PASSWORD),
   },
   cache: {
+    maxCache: parseInt(process.env.MAX_CACHE, 10),
     timeToLiveShort: 1000 * 60 * 60 * 24,
     timeToLiveLong: 1000 * 60 * 60 * 24 * 30,
     keyFormat: {
       steamItem: 'steam_item',
+      tradeId: 'trade_id',
     }
   }
 };

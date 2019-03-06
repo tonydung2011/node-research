@@ -1,16 +1,11 @@
-const config = require('../../config/vars');
 const fetch = require('node-fetch');
 const _ = require('lodash');
-const SteamUser = require('steam-user');
-const SteamTotp = require('steam-totp');
-const SteamCommunity = require('steamcommunity');
-const moment = require('moment');
-const TradeOfferManager = require('steam-tradeoffer-manager');
 const joi = require('joi');
-const steamGuardCredentials = require('../../../botCredentials.json');
 const DotaItem = require('../models/dotaItem.model');
 const configs = require('../../config/vars');
 const { combineDescriptionAndAssets } = require('../utils/utils');
+const { getOfferStatus, removeStatus } = require('../utils/memcache');
+const bots = require('../utils/tradebot');
 
 const schema = joi.object().keys({
   market_hash_name: joi.string().required(),
@@ -21,7 +16,7 @@ const schema = joi.object().keys({
 exports.getUserInfo = async (req, res, next) => {
   try {
     const steamId = req.params.steamid;
-    const responseFromAPI = await fetch(config.API.steam.getUserInfo(steamId));
+    const responseFromAPI = await fetch(configs.API.steam.getUserInfo(steamId));
     if (responseFromAPI.ok && responseFromAPI.status === 200) {
       const user = await responseFromAPI.json();
       return res.status(200).json(user);
@@ -36,7 +31,7 @@ exports.getUserInventoryFromSteamapis = async (req, res, next) => {
   try {
     const steamId = req.params.steamid;
     const inventoryResponse = await fetch(
-      config.API.steam.getInventoryUrl(steamId)
+      configs.API.steam.getInventoryUrl(steamId)
     );
     if (inventoryResponse.ok && inventoryResponse.status === 200) {
       const inventory = await inventoryResponse.json();
@@ -81,7 +76,7 @@ exports.getBotInventoryFromSteamapis = async (req, res, next) => {
   try {
     const botId = req.query.bot || 0;
     const inventoryResponse = await fetch(
-      config.API.steam.getInventoryUrl(config.botList[botId])
+      configs.API.steam.getInventoryUrl(configs.botList[botId])
     );
     if (inventoryResponse.ok && inventoryResponse.status === 200) {
       const inventory = await inventoryResponse.json();
@@ -277,7 +272,7 @@ exports.updateDataInGame = async (req, res, next) => {
 
 exports.updateDatabase = async (req, res, next) => {
   try {
-    const responseFromAPI = await fetch(config.API.steam.getAllSkinInGame());
+    const responseFromAPI = await fetch(configs.API.steam.getAllSkinInGame());
     if (responseFromAPI.ok && responseFromAPI.status === 200) {
       const dotaItemsStore = await responseFromAPI.json();
       await _.each(dotaItemsStore.data, doc => {
@@ -332,89 +327,55 @@ exports.updateDatabase = async (req, res, next) => {
 exports.createOffer = async (req, res) => {
   try {
     const botId = req.body.botId || 0;
-    const { tradeUrl, playerItems, botItems } = req.body;
+    const {
+      tradeUrl, playerItems, botItems, userId,
+    } = req.body;
+    if (getOfferStatus(userId) === 'pending') {
+      return res.status(400).json({
+        success: false,
+        messages: 'You have 1 pending offer, please wait',
+      });
+    }
+    if (getOfferStatus(userId) === 'started') {
+      return res.status(400).json({
+        success: false,
+        messages: 'You have 1 processing offer, please wait',
+      });
+    }
     if (!tradeUrl || typeof tradeUrl !== 'string') {
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
         messages: 'Trade Url must be provided',
       });
     }
-    const client = new SteamUser();
-    const logOnOption = {
-      accountName: config.botCredentials.botNames[botId],
-      password: config.botCredentials.botPasswords[botId],
-      twoFactorCode: SteamTotp.getAuthCode(
-        steamGuardCredentials.value[botId].shared_secret
-      ),
-    };
-    client.logOff();
-    client.logOn(logOnOption);
-    client.on('webSession', (webSession, cookies) => {
-      const community = new SteamCommunity();
-      community.setCookies(cookies);
-      const manager = new TradeOfferManager({
-        community,
-        steam: client,
-        domain: config.domain,
-        language: 'en',
-      });
-      const offer = manager.createOffer(tradeUrl);
-      _.each(playerItems, item => {
-        offer.addTheirItem({
-          assetid: item.assetid,
-          appid: 570,
-          contextid: 2,
-        });
-      });
-      _.each(botItems, item => {
-        offer.addMyItem({
-          assetid: item.assetid,
-          appid: 570,
-          contextid: 2,
-        });
-      });
-
-      function clearSession() {
-        manager.shutdown();
-        client.logOff();
-      }
-
-      function onSendSuccess(err) {
-        if (err) {
-          res.status(400).json({
-            success: false,
-            message: err.message,
-          });
-        } else {
-          community.acceptConfirmationForObject(
-            steamGuardCredentials.value[botId].identity_secret,
-            offer.id,
-            error => {
-              if (!error) {
-                res.status(200).json({
-                  success: true,
-                });
-              } else {
-                res.status(400).json({
-                  success: false,
-                  message: err.message,
-                });
-              }
-              clearSession();
-            }
-          );
-        }
-      }
-      offer.setMessage(`This is an offer come from tradewithme.online. Offer created time:
-          ${moment()
-    .utc()
-    .format('dddd, MMMM Do YYYY, h:mm:ss a')}`);
-      offer.send(onSendSuccess);
+    bots[botId].addOfferToQueue({
+      tradeUrl, playerItems, botItems, userId,
+    });
+    return res.status(200).json({
+      success: true,
     });
   } catch (error) {
-    res.status(400).json({
+    return res.status(400).json({
       success: false,
       message: 'invalid trade request',
+    });
+  }
+};
+
+exports.getUserOfferStatus = async (req, res) => {
+  const { steamid } = req.params;
+  if (steamid) {
+    const status = getOfferStatus(steamid) || 'empty';
+    res.status(200).json({
+      status,
+      success: true,
+    });
+    if (status === 'success' || status === 'fail') {
+      removeStatus(steamid);
+    }
+  } else {
+    res.status(400).json({
+      success: false,
     });
   }
 };

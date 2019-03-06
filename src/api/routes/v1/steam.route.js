@@ -16,6 +16,10 @@ router
   .get(controller.getUserInfo);
 
 router
+  .route('/offer/:steamid')
+  .get(controller.getUserOfferStatus);
+
+router
   .route('/store')
   .get(controller.searchSkin);
 

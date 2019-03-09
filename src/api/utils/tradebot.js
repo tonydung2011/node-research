@@ -131,7 +131,10 @@ function TradeBot(props) {
     this.isEmpty = true;
   };
 
-  this.botQueue = new Queue(this.offerProccess, {});
+  this.botQueue = new Queue(this.offerProccess, {
+    afterProcessDelay: configs.tradeBot.afterProcessDelay,
+    id: 'userId',
+  });
   this.botQueue.on('drain', this.logout);
 
 

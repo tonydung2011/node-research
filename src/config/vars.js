@@ -44,6 +44,11 @@ module.exports = {
       tradeId: 'trade_id',
     }
   },
+  tradeBot: {
+    afterProcessDelay: parseInt(process.env.AFTER_PROCESS_DELAY, 10),
+    maxRetries: parseInt(process.env.MAX_RETRIES, 10),
+    retryDelay: parseInt(process.env.RETRY_DELAY, 10),
+  },
   admin: {
     defaultEmail: process.env.ADMIN_NAME,
     defaultPassword: process.env.ADMIN_PASSWORD,

@@ -271,6 +271,11 @@ exports.updateDataInGame = async (req, res, next) => {
 };
 
 exports.updateDatabase = async (req, res, next) => {
+  if (req.body.secret !== configs.admin.jobSchedulerSecret) {
+    return res.status(401).json({
+      success: false,
+    });
+  }
   try {
     const responseFromAPI = await fetch(configs.API.steam.getAllSkinInGame());
     if (responseFromAPI.ok && responseFromAPI.status === 200) {

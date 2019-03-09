@@ -1,5 +1,6 @@
 const express = require('express');
 const controller = require('../../controllers/steam.controller');
+const { authorize, ADMIN } = require('../../middlewares/auth');
 
 const router = express.Router();
 
@@ -21,11 +22,11 @@ router
 
 router
   .route('/store')
-  .get(controller.searchSkin);
+  .get(authorize(ADMIN), controller.searchSkin);
 
 router
   .route('/store')
-  .put(controller.updateDataInGame);
+  .put(authorize(ADMIN), controller.updateDataInGame);
 
 router
   .route('/trade')
@@ -33,7 +34,7 @@ router
 
 router
   .route('/update')
-  .post(controller.updateDatabase);
+  .put(controller.updateDatabase);
 
 
 module.exports = router;

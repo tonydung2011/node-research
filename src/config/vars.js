@@ -43,5 +43,10 @@ module.exports = {
       steamItem: 'steam_item',
       tradeId: 'trade_id',
     }
+  },
+  admin: {
+    defaultEmail: process.env.ADMIN_NAME,
+    defaultPassword: process.env.ADMIN_PASSWORD,
+    jobSchedulerSecret: process.env.JOB_SCHEDULER_SECRET,
   }
 };

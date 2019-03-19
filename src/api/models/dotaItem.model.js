@@ -2,6 +2,7 @@ const configs = require('../../config/vars');
 const _ = require('lodash');
 const mongoose = require('mongoose');
 const moment = require('moment-timezone');
+const { combineDescriptionAndAssets } = require('../utils/utils');
 
 /**
  * Dota Item Schema
@@ -48,7 +49,7 @@ const dotaItemSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now,
-  }
+  },
 });
 
 /**
@@ -117,8 +118,53 @@ dotaItemSchema.statics.countDocWithFilter = function (filter = {}) {
     .where('hero')
     .regex(new RegExp(newFilter.hero));
 };
+
 dotaItemSchema.statics.findByName = function (name) {
   return this.findOne({ marketHashName: name });
+};
+
+dotaItemSchema.statics.getInfoMultiItems = async function (
+  assets,
+  descriptions
+) {
+  return _.filter(
+    await Promise.all(
+      _.map(combineDescriptionAndAssets(assets, descriptions), skin =>
+        this.findByName(skin.market_hash_name).then(found =>
+          (found
+            ? {
+              ...found._doc,
+              tags: skin.tags,
+              assetid: skin.assetid,
+              marketMarketableRestriction: skin.market_marketable_restriction,
+              price: found._doc.priceLast7d * found._doc.marketRate,
+            }
+            : null)
+        )
+      )
+    ),
+    d => d
+  );
+};
+
+dotaItemSchema.statics.getMultiItemsInfoByName = async function (
+  marketHashNames
+) {
+  return _.filter(
+    await Promise.all(
+      _.map(marketHashNames, name =>
+        this.findByName(name).then(found =>
+          (found
+            ? {
+              ...found._doc,
+              price: found._doc.priceLast7d * found._doc.marketRate,
+            }
+            : null)
+        )
+      )
+    ),
+    d => d
+  );
 };
 
 dotaItemSchema.index({

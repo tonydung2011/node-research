@@ -3,9 +3,9 @@ const _ = require('lodash');
 const joi = require('joi');
 const DotaItem = require('../models/dotaItem.model');
 const configs = require('../../config/vars');
-const { combineDescriptionAndAssets } = require('../utils/utils');
 const { getOfferStatus, removeStatus } = require('../utils/memcache');
 const bots = require('../utils/tradebot');
+const { isValidOffer } = require('../validations/trade.validation');
 
 const schema = joi.object().keys({
   market_hash_name: joi.string().required(),
@@ -35,29 +35,7 @@ exports.getUserInventoryFromSteamapis = async (req, res, next) => {
     );
     if (inventoryResponse.ok && inventoryResponse.status === 200) {
       const inventory = await inventoryResponse.json();
-      const result = _.filter(
-        await Promise.all(
-          _.map(
-            combineDescriptionAndAssets(
-              inventory.assets,
-              inventory.descriptions
-            ),
-            skin =>
-              DotaItem.findByName(skin.market_hash_name).then(found =>
-                (found
-                  ? {
-                    ...found._doc,
-                    tags: skin.tags,
-                    assetid: skin.assetid,
-                    marketMarketableRestriction: skin.market_marketable_restriction,
-                    price: found._doc.priceLast7d * found._doc.marketRate,
-                  }
-                  : null)
-              )
-          )
-        ),
-        d => d
-      );
+      const result = await DotaItem.getInfoMultiItems(inventory.assets, inventory.descriptions);
       return res.status(200).json(result);
     }
     return res.status(400).json({
@@ -80,29 +58,7 @@ exports.getBotInventoryFromSteamapis = async (req, res, next) => {
     );
     if (inventoryResponse.ok && inventoryResponse.status === 200) {
       const inventory = await inventoryResponse.json();
-      const result = _.filter(
-        await Promise.all(
-          _.map(
-            combineDescriptionAndAssets(
-              inventory.assets,
-              inventory.descriptions
-            ),
-            skin =>
-              DotaItem.findByName(skin.market_hash_name).then(found =>
-                (found
-                  ? {
-                    ...found._doc,
-                    tags: skin.tags,
-                    assetid: skin.assetid,
-                    marketMarketableRestriction: skin.market_marketable_restriction,
-                    price: found._doc.priceLast7d * found._doc.marketRate,
-                  }
-                  : null)
-              )
-          )
-        ),
-        d => d
-      );
+      const result = await DotaItem.getInfoMultiItems(inventory.assets, inventory.descriptions);
       return res.status(200).json(result);
     }
     return res.status(400).json({
@@ -208,19 +164,6 @@ exports.searchSkin = async (req, res, next) => {
 exports.updateDataInGame = async (req, res, next) => {
   try {
     const { data } = req.body;
-    // const { data, password } = req.body;
-    // let secure = false;
-    // const databaseSnapshot = await adminDB.get();
-    // databaseSnapshot.forEach((doc) => {
-    //   if (password === doc.data().password) {
-    //     secure = true;
-    //   }
-    // });
-    // if (!secure) {
-    //   return res.status(403).json({
-    //     error: 'No permission',
-    //   });
-    // }
     if (!data) {
       return res.status(400).json({
         success: false,
@@ -338,31 +281,37 @@ exports.createOffer = async (req, res) => {
     if (getOfferStatus(userId) === 'pending') {
       return res.status(400).json({
         success: false,
-        messages: 'You have 1 pending offer, please wait',
+        message: 'You have 1 pending offer, please wait',
       });
     }
     if (getOfferStatus(userId) === 'started') {
       return res.status(400).json({
         success: false,
-        messages: 'You have 1 processing offer, please wait',
+        message: 'You have 1 processing offer, please wait',
       });
     }
     if (!tradeUrl || typeof tradeUrl !== 'string') {
       return res.status(400).json({
         success: false,
-        messages: 'Trade Url must be provided',
+        message: 'Trade Url must be provided',
       });
     }
-    bots[botId].addOfferToQueue({
-      tradeUrl, playerItems, botItems, userId,
-    });
-    return res.status(200).json({
-      success: true,
+    if (await isValidOffer(playerItems, botItems)) {
+      bots[botId].addOfferToQueue({
+        tradeUrl, playerItems, botItems, userId,
+      });
+      return res.status(200).json({
+        success: true,
+      });
+    }
+    return res.status(400).json({
+      success: false,
+      message: 'invalid trade offer value',
     });
   } catch (error) {
     return res.status(400).json({
       success: false,
-      message: 'invalid trade request',
+      message: error.message,
     });
   }
 };

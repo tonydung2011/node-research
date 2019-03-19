@@ -1,5 +1,6 @@
 const LRU = require('lru-cache');
 const joi = require('joi');
+const uuid = require('uuid/v4');
 const configs = require('../../config/vars');
 
 const options = {
@@ -8,6 +9,7 @@ const options = {
   maxAge: configs.cache.timeToLiveLong,
 };
 const cache = new LRU(options);
+const offerInfo = new LRU(options);
 exports.validStatus = string =>
   joi
     .string()
@@ -28,3 +30,8 @@ exports.offerSendFail = userId => {
 };
 exports.getOfferStatus = userId => cache.get(userId);
 exports.removeStatus = userId => cache.del(userId);
+
+exports.setOfferId = userId => offerInfo.set(userId, uuid());
+exports.getOfferId = userId => offerInfo.get(userId);
+exports.setLoginSessionId = () => offerInfo.set('login-session', uuid());
+exports.getLoginSessionId = () => offerInfo.get('login-session');

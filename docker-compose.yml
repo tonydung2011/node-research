@@ -24,5 +24,12 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: root_password
       MONGO_INITDB_DATABASE: tradewithme_database
 
+  fluentd:
+    image: fluent/fluentd:v1.3-onbuild-1
+    volumes: 
+      - ./log:/fluentd/log
+    ports:
+      - "24224:24224"
+
 volumes:
   mongoDataTradewithme:

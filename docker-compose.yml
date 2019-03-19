@@ -26,8 +26,6 @@ services:
 
   fluentd:
     image: fluent/fluentd:v1.3-1
-    volumes: 
-      - ./log:/fluentd/log
     ports:
       - "24224:24224"
 

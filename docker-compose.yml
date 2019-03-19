@@ -25,7 +25,7 @@ services:
       MONGO_INITDB_DATABASE: tradewithme_database
 
   fluentd:
-    image: fluent/fluentd:v1.3-onbuild-1
+    image: fluent/fluentd:v1.3-1
     volumes: 
       - ./log:/fluentd/log
     ports:

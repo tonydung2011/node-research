@@ -23,7 +23,7 @@ const logger = require('../utils/logger');
 const botList = {};
 
 function TradeBot(props) {
-  this.botClient = new SteamUser();
+  this.botClient = undefined;
   this.botManager = undefined;
   this.botCommunity = undefined;
   this.isEmpty = true;
@@ -163,6 +163,7 @@ function TradeBot(props) {
           ),
         };
         this.botClient.logOff();
+        this.botClient = new SteamUser();
         this.botClient.logOn(logOnOption);
         this.botClient.on('webSession', (webSession, cookies) => {
           logger.info('on session created');
@@ -195,6 +196,7 @@ function TradeBot(props) {
       this.botManager.shutdown();
     }
     this.botClient.logOff();
+    this.botClient = null;
     this.isEmpty = true;
     logger.info(
       `Queue empty, logout session ${getLoginSessionId()}`

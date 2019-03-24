@@ -162,8 +162,8 @@ function TradeBot(props) {
             steamGuardCredentials.value[props.index].shared_secret
           ),
         };
-        this.botClient.logOff();
         this.botClient = new SteamUser();
+        this.botClient.logOff();
         this.botClient.logOn(logOnOption);
         this.botClient.on('webSession', (webSession, cookies) => {
           logger.info('on session created');
@@ -184,7 +184,7 @@ function TradeBot(props) {
       logger.info(
         `offer ${getOfferId(
           input.userId
-        )} fail with reason ${JSON.stringify(error)}`
+        )} fail with reason ${error.message}`
       );
       offerSendFail(input.userId);
       cb(error);

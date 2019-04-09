@@ -27,6 +27,10 @@ const dotaItemSchema = new mongoose.Schema({
     type: Number,
     default: null,
   },
+  volumn: {
+    type: Number,
+    default: null,
+  },
   priceLast24h: Number,
   priceLast7d: Number,
   priceLast30d: Number,

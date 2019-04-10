@@ -90,12 +90,12 @@ exports.searchSkin = async (req, res, next) => {
     page = !isNaN(parseInt(page, 10)) /* eslint-disable-line */
       ? parseInt(page, 10)
       : 1;
-    minPrice = !isNaN(parseInt(minPrice, 10)) /* eslint-disable-line */
-      ? parseInt(minPrice, 10)
+    minPrice = !isNaN(parseFloat(minPrice)) /* eslint-disable-line */
+      ? parseFloat(minPrice)
       : 0;
-    maxPrice = !isNaN(parseInt(maxPrice, 10)) /* eslint-disable-line */
-      ? parseInt(maxPrice, 10)
-      : parseInt(configs.maxPrice, 10);
+    maxPrice = !isNaN(parseFloat(maxPrice)) /* eslint-disable-line */
+      ? parseFloat(maxPrice)
+      : parseFloat(configs.maxPrice);
 
     if (!tradable || tradable !== 'yes' || tradable !== 'no') {
       tradable = 'all';

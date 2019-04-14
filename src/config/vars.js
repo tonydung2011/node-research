@@ -48,6 +48,7 @@ module.exports = {
     afterProcessDelay: parseInt(process.env.AFTER_PROCESS_DELAY, 10),
     maxRetries: parseInt(process.env.MAX_RETRIES, 10),
     retryDelay: parseInt(process.env.RETRY_DELAY, 10),
+    maxTimeOut: process.env.MAX_TIME_OUT
   },
   admin: {
     defaultEmail: process.env.ADMIN_NAME,

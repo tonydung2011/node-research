@@ -26,7 +26,7 @@ function TradeBot(props) {
   this.botClient = undefined;
   this.botManager = undefined;
   this.botCommunity = undefined;
-  this.isEmpty = true;
+  this.isLogin = false;
 
   this.createOffer = (
     {
@@ -150,11 +150,11 @@ function TradeBot(props) {
         cb(new Error('There are some items of bot no longer owned'));
         return;
       }
-      if (this.isEmpty) {
+      if (!this.isLogin) {
         setLoginSessionId();
         logger.info('Queue empty, start to login');
         logger.info(`Session Id: ${getLoginSessionId()}`);
-        this.isEmpty = false;
+        this.isLogin = true;
         const logOnOption = {
           accountName: configs.botCredentials.botNames[props.index],
           password: configs.botCredentials.botPasswords[props.index],
@@ -197,7 +197,7 @@ function TradeBot(props) {
     }
     this.botClient.logOff();
     this.botClient = null;
-    this.isEmpty = true;
+    this.isLogin = false;
     logger.info(
       `Queue empty, logout session ${getLoginSessionId()}`
     );
@@ -205,9 +205,12 @@ function TradeBot(props) {
 
   this.botQueue = new Queue(this.offerProccess, {
     afterProcessDelay: configs.tradeBot.afterProcessDelay,
+    maxTimeout: configs.tradeBot.maxTimeOut,
     id: 'userId',
   });
+
   this.botQueue.on('drain', this.logout);
+  this.botQueue.on('task_failed', this.logout);
 
   this.addOfferToQueue = (input, cb = () => {}) => {
     this.botQueue.push(input, cb);

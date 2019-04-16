@@ -238,6 +238,7 @@ exports.updateDatabase = async (req, res, next) => {
             priceLast24h: doc.prices.safe_ts.last_24h,
             priceLast7d: doc.prices.safe_ts.last_7d,
             priceLast30d: doc.prices.safe_ts.last_30d,
+            volumn: doc.prices.sold.last_7d,
             priceLatest: doc.prices.latest,
             priceMax: doc.prices.max,
             priceMin: doc.prices.min,

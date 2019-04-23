@@ -122,6 +122,9 @@ exports.searchSkin = async (req, res, next) => {
       case 'rarity':
         order = 'rarity';
         break;
+      case 'volumn':
+        order = 'volumn';
+        break;
       default:
         order = 'marketHashName';
         break;

@@ -138,6 +138,9 @@ dotaItemSchema.statics.getInfoMultiItems = async function (
               tags: skin.tags,
               assetid: skin.assetid,
               marketMarketableRestriction: skin.market_marketable_restriction,
+              marketTradableRestriction: skin.market_tradable_restriction,
+              steamTradable: skin.tradable,
+              steamMarketable: skin.marketable,
               price: found._doc.priceLast7d * found._doc.marketRate,
             }
             : null)

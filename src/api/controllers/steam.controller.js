@@ -199,7 +199,6 @@ exports.updateDataInGame = async (req, res, next) => {
           tradable: doc.tradable,
           marketRate: doc.marketRate,
           overstock: doc.overstock,
-          volumn: doc.volumn,
         },
         {
           new: true,

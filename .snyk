@@ -28,3 +28,5 @@ patch:
         patched: '2020-06-10T14:57:10.751Z'
     - pm2 > pm2-deploy > async > lodash:
         patched: '2020-06-10T14:57:10.751Z'
+    - pm2 > cli-tableau > mocha > yargs-unparser > lodash:
+        patched: '2020-06-10T15:11:47.556Z'

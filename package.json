@@ -88,7 +88,7 @@
     "passport-jwt": "4.0.0",
     "pm2": "^4.3.0",
     "uuid": "^3.1.0",
-    "snyk": "^1.338.0"
+    "snyk": "^1.425.4"
   },
   "devDependencies": {
     "apidoc": "^0.17.5",
